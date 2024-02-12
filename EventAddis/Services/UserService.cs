@@ -33,9 +33,9 @@ namespace WebService.API.Services
             CreatePasswordHash(Password, out passwordHash, out passwordSalt);
 
             var user = _mapper.Map<UserInfo>(createUser);
+            user.RegisteredAt = DateTime.UtcNow;
+
             var credential = _mapper.Map<UserCredential>(createUser);
-
-
             credential.PasswordHash = passwordHash;
             credential.PasswordSalt = passwordSalt;
             credential.UserId = user.UserId;
@@ -61,6 +61,8 @@ namespace WebService.API.Services
             updateobj.Username = user.Username;
             updateobj.Email = user.Email;
             updateobj.PhoneNo = user.PhoneNo;
+            updateobj.Bio = user.Bio;
+            updateobj.ProfilePictureUrl = user.ProfilePictureUrl;
 
             _context.SaveChanges();
         }

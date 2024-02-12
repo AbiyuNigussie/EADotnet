@@ -33,6 +33,8 @@ namespace WebService.API.Services
                 // check if password is correct
                 if (VerifyPasswordHash(auth.Password, credUser.PasswordHash, credUser.PasswordSalt))
                 {
+                    user.LastLogin = DateTime.UtcNow;
+                    _context.SaveChanges();
                     return (PasswordVerificationResult.Success, user);
                 }
 
