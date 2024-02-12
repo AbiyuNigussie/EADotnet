@@ -1,14 +1,16 @@
-﻿using EventAddis.Dto;
-using EventAddis.Models;
+﻿using WebService.API.Entity;
+using WebService.API.Models;
 
-namespace EventAddis.Repositories
+namespace WebService.API.Repository
 {
     public interface IUserService
     {
-        Task<ICollection<UserInfo>> GetUserInfos();
-        Task<bool> UserInfoExist(Guid id);
-        Task<bool> CreateUser(UserDetailsDto user);
+        IEnumerable<User> GetUsers();
+        User GetUserbyId(int id);
+        void PutUser(int id, UpdateUser user);
+        User PostUser(User create, string Password);
+        void DeleteUser(User user);
+        public bool IsExist(int id);
         
-        Task<bool> Save();
     }
 }

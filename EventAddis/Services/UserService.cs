@@ -1,64 +1,77 @@
-﻿using AutoMapper;
-using EventAddis.Data;
-using EventAddis.Dto;
-using EventAddis.Models;
-using EventAddis.Repositories;
-using EventAddis.Repository;
+﻿
+using WebService.API.Data;
+using WebService.API.Entity;
+using WebService.API.Repository; 
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using WebService.API.Models;
+using WebService.API.Helpers;
 
-namespace EventAddis.Services
+namespace WebService.API.Services
 {
     public class UserService : IUserService
     {
-        private readonly DataContext _context;
-        private readonly IMapper _mapper;
-        private readonly IHashService _hashService;
+        private readonly ApplicationDbContext _context;
 
-        public UserService(DataContext context, IMapper mapper, IHashService hashService)
+        public UserService(ApplicationDbContext context)
         {
             _context = context;
-            _mapper = mapper;
-            _hashService = hashService;
         }
 
-        public async Task<bool> CreateUser(UserDetailsDto userDetails)
+        public IEnumerable<User> GetUsers() => _context.Users.ToList();
+
+        public User GetUserbyId(int id) => _context.Users.Find(id);
+
+
+        public User PostUser(User createUser, string Password)
         {
-            var userMap = _mapper.Map<UserInfo>(userDetails);
-            userMap.UserId = Guid.NewGuid();
-            userMap.RegisteredAt = DateTime.Now;
+            if (_context.Users.Any(x => x.Username == createUser.Email))
+                throw new AppException("User Email \"" + createUser.Email + "\" is already taken");
 
-            var credentialMap = _mapper.Map<UserCredential>(userDetails);
-            var encryptedCredentials = _hashService.HashPassword(userDetails.Password);
+            byte[] passwordHash, passwordSalt;
+            CreatePasswordHash(Password, out passwordHash, out passwordSalt);
 
-            credentialMap.CredentialId = Guid.NewGuid();
-            credentialMap.HashedPassword = encryptedCredentials["hash"];
-            credentialMap.Salt = encryptedCredentials["salt"];
-            credentialMap.UserId = userMap.UserId;
+            createUser.PasswordHash = passwordHash;
+            createUser.PasswordSalt = passwordSalt;
 
-            _context.Add(userMap);
-            _context.Add(credentialMap);
-
-            return await Save();
+            _context.Users.Add(createUser);
+            _context.SaveChanges();
+            return createUser;
         }
 
-        public async Task<ICollection<UserInfo>> GetUserInfos()
+        public void DeleteUser(User user)
         {
-            return await _context.UserInfos.OrderBy(u => u.UserId).Include(u => u.UserCredential).ToListAsync();
+            _context.Users.Remove(user);
+            _context.SaveChanges();
+
         }
 
-        public async Task<bool> UserInfoExist(Guid id)
+        void IUserService.PutUser(int id, UpdateUser user)
         {
-            return await _context.UserInfos.AnyAsync(u => u.UserId == id);
+            var updateobj = _context.Users.Find(id);
+            updateobj.Username = user.Username;
+            updateobj.Email = user.Email;
+            updateobj.PhoneNo = user.PhoneNo;
+
+            _context.SaveChanges();
+        }
+        public bool IsExist(int id)
+        {
+            return _context.Users.Any(e => e.Userid == id);
         }
 
-        public async Task<bool> Save()
+        private static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {
-            var saved = await _context.SaveChangesAsync();
-            return saved > 0;
+            if (password == null) throw new ArgumentNullException("password");
+            if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Value cannot be empty or whitespace only string.", "password");
+
+            using (var hmac = new System.Security.Cryptography.HMACSHA512())
+            {
+                passwordSalt = hmac.Key;
+                passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+            }
         }
+
+        
     }
 }
+

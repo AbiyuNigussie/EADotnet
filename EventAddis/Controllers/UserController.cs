@@ -1,56 +1,116 @@
-using EventAddis.Dto;
-using EventAddis.Repositories;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using WebService.API.Data;
+using WebService.API.Entity;
+using WebService.API.Models;
+using WebService.API.Repository;
 
-namespace EventAddis.Controllers
+namespace WebService.API.Controllers
 {
-    [ApiController]
+   
     [Route("api/[controller]")]
+    [ApiController]
+    [Authorize(AuthenticationSchemes = "Bearer")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _user;
-        public UserController(IUserService user)
+        private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
+
+        public UserController(IUserService userService, ApplicationDbContext context, IMapper mapper)
         {
-            _user = user;
+            _user = userService;
+            _context = context;
+            _mapper = mapper;
         }
+
+        // GET: api/Users
 
         [HttpGet]
-        public async Task<IActionResult> GetUsers()
+        [Authorize(Roles = "SuperAdmin")]
+        public IActionResult GetUsers() 
         {
-            var allUser = await _user.GetUserInfos();
-            return Ok(allUser);
+            var AllUser = _user.GetUsers();
+            return Ok(AllUser);
         }
 
-        [HttpPost("signup")]
-        public async Task<IActionResult> CreateUser(UserDetailsDto userDetails)
+        // GET: api/Users/5
+        [HttpGet("{id}")]
+        [Authorize(Roles = "SuperAdmin, Admin, Agent")]
+        public IActionResult GetUserbyId(int id)
         {
-            if (userDetails == null)
+            var userById = _user.GetUserbyId(id);
+
+            if (userById == null)
             {
-                return BadRequest(ModelState);
+                return NotFound("User for the $`{id}` not found!");
             }
 
-            var existingUser = (await _user.GetUserInfos().ConfigureAwait(false))
-                .Where(u => u.Email.ToLower() == userDetails.Email.ToLower())
-                .FirstOrDefault();
+            return Ok(userById);
+        }
 
-            if (existingUser != null)
+        // PUT: api/Users/5
+        [HttpPut("{id}")]
+        [Authorize(Roles = "SuperAdmin, Admin")]
+        public IActionResult PutUser(int id, UpdateUser user)
+        {
+            var dbuserid = _context.Users.Find(id);
+            if (id != dbuserid.Userid)
             {
-                ModelState.AddModelError("", "Email Already Exists!");
-                return StatusCode(422, ModelState);
+                return NotFound("Error : Invalid Put Request, User Not Found !");
             }
 
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            if (!await _user.CreateUser(userDetails))
+            try
             {
-                ModelState.AddModelError("", "Something Went Wrong While Creating User!");
-                return StatusCode(500, ModelState);
+                _user.PutUser(id, user);
             }
 
-            return Ok("Successfully Created!");
+
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!UserExists(id))
+                {
+                    return NotFound("Error Updating the User !");
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return Ok("Success !");
+        }
+
+        // POST: api/Users
+        [HttpPost]
+        [AllowAnonymous]
+        public IActionResult PostUser([FromBody] RegisterUser user)
+        {
+            var model = _mapper.Map<User>(user);
+            var createUser = _user.PostUser(model,user.Password);
+            return Ok(createUser);
+        }
+
+        // DELETE: api/Users/5
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "SuperAdmin")]
+        public IActionResult DeleteUser(int id)
+        {
+            var user = _user.GetUserbyId(id);
+            if (user == null)
+            {
+                return NotFound("User Not Found");
+            }
+
+            _user.DeleteUser(user);
+            return NotFound("User Deleted");
+        }
+
+        private bool UserExists(int id)
+        {
+            return _user.IsExist(id);
         }
     }
 }
