@@ -5,12 +5,12 @@ namespace WebService.API.Repository
 {
     public interface IUserService
     {
-        IEnumerable<User> GetUsers();
-        User GetUserbyId(int id);
-        void PutUser(int id, UpdateUser user);
-        User PostUser(User create, string Password);
-        void DeleteUser(User user);
-        public bool IsExist(int id);
+        IEnumerable<UserInfo> GetUsers();
+        UserInfo GetUserbyId(Guid id);
+        void PutUser(Guid id, UpdateUser user);
+        UserInfo PostUser(RegisterUser create, string Password);
+        void DeleteUser(UserInfo user);
+        public bool IsExist(Guid id);
         
     }
 }

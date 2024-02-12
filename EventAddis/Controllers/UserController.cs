@@ -9,7 +9,7 @@ using WebService.API.Repository;
 
 namespace WebService.API.Controllers
 {
-   
+
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(AuthenticationSchemes = "Bearer")]
@@ -30,7 +30,7 @@ namespace WebService.API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "SuperAdmin")]
-        public IActionResult GetUsers() 
+        public IActionResult GetUsers()
         {
             var AllUser = _user.GetUsers();
             return Ok(AllUser);
@@ -39,7 +39,7 @@ namespace WebService.API.Controllers
         // GET: api/Users/5
         [HttpGet("{id}")]
         [Authorize(Roles = "SuperAdmin, Admin, Agent")]
-        public IActionResult GetUserbyId(int id)
+        public IActionResult GetUserbyId(Guid id)
         {
             var userById = _user.GetUserbyId(id);
 
@@ -54,10 +54,10 @@ namespace WebService.API.Controllers
         // PUT: api/Users/5
         [HttpPut("{id}")]
         [Authorize(Roles = "SuperAdmin, Admin")]
-        public IActionResult PutUser(int id, UpdateUser user)
+        public IActionResult PutUser(Guid id, UpdateUser user)
         {
-            var dbuserid = _context.Users.Find(id);
-            if (id != dbuserid.Userid)
+            var dbuserid = _context.UserInfos.Find(id);
+            if (id != dbuserid.UserId)
             {
                 return NotFound("Error : Invalid Put Request, User Not Found !");
             }
@@ -88,15 +88,26 @@ namespace WebService.API.Controllers
         [AllowAnonymous]
         public IActionResult PostUser([FromBody] RegisterUser user)
         {
-            var model = _mapper.Map<User>(user);
-            var createUser = _user.PostUser(model,user.Password);
+            //var model = _mapper.Map<UserInfo>(user);
+            var userExist = _user.GetUsers().Where(u => u.Email.TrimEnd().ToLower() == user.Email.Trim().ToLower() || u.Username.TrimEnd().ToLower() == user.Username.Trim().ToLower()).FirstOrDefault();
+
+
+            if (userExist != null)
+            {
+                ModelState.AddModelError("", "Email/Username Already Exist!");
+                return StatusCode(422, ModelState);
+            }
+
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var createUser = _user.PostUser(user,user.Password);
             return Ok(createUser);
         }
 
         // DELETE: api/Users/5
         [HttpDelete("{id}")]
         [Authorize(Roles = "SuperAdmin")]
-        public IActionResult DeleteUser(int id)
+        public IActionResult DeleteUser(Guid id)
         {
             var user = _user.GetUserbyId(id);
             if (user == null)
@@ -108,7 +119,7 @@ namespace WebService.API.Controllers
             return NotFound("User Deleted");
         }
 
-        private bool UserExists(int id)
+        private bool UserExists(Guid id)
         {
             return _user.IsExist(id);
         }

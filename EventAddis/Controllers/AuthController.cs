@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WebService.API.Entity;
 using WebService.API.Models;
@@ -29,25 +30,40 @@ namespace WebService.API.Controllers
         [Route("Authentication")]
         public IActionResult Post([FromBody] AuthUser authentication)
         {
-            var user = _auth.Authenticate(authentication);
 
-            if (user != null)
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var result = _auth.Authenticate(authentication);
+
+
+            if (result.userDetails != null)
             {
-                var token = _auth.Generate(user);
 
-                return Ok(new
+                if(result.passwordVerificationResult == PasswordVerificationResult.Success)
                 {
-                    Id = user.Userid,
-                    Username = user.Username,
-                    Email = user.Email,
-                    Role = user.Role,
-                    Phone = user.PhoneNo,
-                    Created_at = DateTime.UtcNow,
-                    Token = token
-                });
+                    var token = _auth.Generate(result.userDetails);
+
+                    return Ok(new
+                    {
+                        Id = result.userDetails.UserId,
+                        Username = result.userDetails.Username,
+                        Email = result.userDetails.Email,
+                        Role = result.userDetails.Role,
+                        Phone = result.userDetails.PhoneNo,
+                        Created_at = DateTime.UtcNow,
+                        Token = token
+                    });
+                }
+
+                ModelState.AddModelError("", "Incorrect Password/Username");
+                return StatusCode(402, ModelState);
+
 
             }
-            return NotFound("User Not Found");
+
+                ModelState.AddModelError("", "User not Found!");
+                return StatusCode(404, ModelState);
+            
         }
 
         [AllowAnonymous]
@@ -55,8 +71,8 @@ namespace WebService.API.Controllers
         [Route("Register")]
         public IActionResult createUser([FromBody] RegisterUser user)
         {
-            var model = _mapper.Map<User>(user);
-            var createUser = _userservice.PostUser(model, user.Password);
+
+            var createUser = _userservice.PostUser(user, user.Password);
             return Ok(createUser);
         }
     }

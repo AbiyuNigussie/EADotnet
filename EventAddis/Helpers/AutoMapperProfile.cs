@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using EventAddis.Entity;
 using WebService.API.Entity;
 using WebService.API.Models;
 
@@ -8,9 +9,11 @@ namespace WebService.API.Helpers
     {
         public AutoMapperProfile()
         {
-            CreateMap<User, UserModel>();
-            CreateMap<RegisterUser, User>();
-            CreateMap<UpdateUser, User>();
+            CreateMap<UserInfo, UserModel>();
+            CreateMap<RegisterUser, UserInfo>()
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => Guid.NewGuid()));
+            CreateMap<RegisterUser, UserCredential>();
+            CreateMap<UpdateUser, UserInfo>();
         }
         
     }

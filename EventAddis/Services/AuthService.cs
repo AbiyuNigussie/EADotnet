@@ -1,4 +1,5 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -20,27 +21,29 @@ namespace WebService.API.Services
             _context = context;
         }
 
-        public User Authenticate(AuthUser auth)
+        public (PasswordVerificationResult passwordVerificationResult,UserInfo userDetails) Authenticate(AuthUser auth)
         {
-
-
-            if (string.IsNullOrEmpty(auth.UserName) || string.IsNullOrEmpty(auth.Email) || string.IsNullOrEmpty(auth.Password))
-                return null;
-
-            var user = _context.Users.SingleOrDefault(x => x.Email == auth.Email);
+            var user = _context.UserInfos.FirstOrDefault(x => x.Email.TrimEnd().ToLower() == auth.Email.Trim().ToLower() || x.Username.TrimEnd().ToLower() == auth.UserName.Trim().ToLower());
 
             // check if username exists
-            if (user == null)
-                return null;
-            // check if password is correct
-            if (!VerifyPasswordHash(auth.Password, user.PasswordHash, user.PasswordSalt))
-                return null;
+            if (user != null)
+            {
+                var credUser = _context.UserCredentials.SingleOrDefault(x => x.UserId == user.UserId);
 
-            // authentication successful
-            return user;
+                // check if password is correct
+                if (VerifyPasswordHash(auth.Password, credUser.PasswordHash, credUser.PasswordSalt))
+                {
+                    return (PasswordVerificationResult.Success, user);
+                }
+
+                return (PasswordVerificationResult.Failed, user);
+            }
+
+            // authentication failed
+            return (PasswordVerificationResult.Failed, null);
         }
 
-        public string Generate(User user)
+        public string Generate(UserInfo user)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:key"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);

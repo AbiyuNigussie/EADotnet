@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using EventAddis.Entity;
+using Microsoft.EntityFrameworkCore;
 using WebService.API.Entity;
 
 namespace WebService.API.Data
@@ -10,10 +11,30 @@ namespace WebService.API.Data
         {
 
         }
-        public DbSet<User> Users { get; set; }
+        public DbSet<UserCredential> UserCredentials { get; set; }
+        public DbSet<UserInfo> UserInfos{ get; set; }
 
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<UserCredential>(entity =>
+            {
 
+                entity.Property(e => e.PasswordHash)
+                    .HasColumnType("nvarchar(max)")
+                    .HasMaxLength(70)
+                    .IsUnicode(false);
+                entity.Property(e => e.CredentialId)
+                    .ValueGeneratedOnAdd();
+                entity.Property(e => e.PasswordSalt)
+                    .HasColumnType("nvarchar(max)")
+                    .IsUnicode(false);
+                entity.HasOne(e => e.User).WithOne(e => e.userCrendential)
+                    .HasForeignKey<UserCredential>(e => e.UserId);
+            });
+                
+        }
         //protected override void OnModelCreating(ModelBuilder builder)
         //{
         //    base.OnModelCreating(builder);

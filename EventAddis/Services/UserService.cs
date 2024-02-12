@@ -5,58 +5,68 @@ using WebService.API.Repository;
 using Microsoft.EntityFrameworkCore;
 using WebService.API.Models;
 using WebService.API.Helpers;
+using AutoMapper;
+using EventAddis.Entity;
 
 namespace WebService.API.Services
 {
     public class UserService : IUserService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
 
-        public UserService(ApplicationDbContext context)
+        public UserService(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        public IEnumerable<User> GetUsers() => _context.Users.ToList();
+        public IEnumerable<UserInfo> GetUsers() => _context.UserInfos.ToList();
 
-        public User GetUserbyId(int id) => _context.Users.Find(id);
+        public UserInfo GetUserbyId(Guid id) => _context.UserInfos.Find(id);
 
 
-        public User PostUser(User createUser, string Password)
+        public UserInfo PostUser(RegisterUser createUser, string Password)
         {
-            if (_context.Users.Any(x => x.Username == createUser.Email))
-                throw new AppException("User Email \"" + createUser.Email + "\" is already taken");
 
             byte[] passwordHash, passwordSalt;
             CreatePasswordHash(Password, out passwordHash, out passwordSalt);
 
-            createUser.PasswordHash = passwordHash;
-            createUser.PasswordSalt = passwordSalt;
+            var user = _mapper.Map<UserInfo>(createUser);
+            var credential = _mapper.Map<UserCredential>(createUser);
 
-            _context.Users.Add(createUser);
+
+            credential.PasswordHash = passwordHash;
+            credential.PasswordSalt = passwordSalt;
+            credential.UserId = user.UserId;
+
+            _context.UserInfos.Add(user);
+            _context.UserCredentials.Add(credential);
             _context.SaveChanges();
-            return createUser;
+            return user;
         }
 
-        public void DeleteUser(User user)
+        public void DeleteUser(UserInfo user)
         {
-            _context.Users.Remove(user);
+            var userCred = _context.UserCredentials.FirstOrDefault(cred => cred.UserId == user.UserId);
+            _context.UserInfos.Remove(user);
+            _context.UserCredentials.Remove(userCred);
             _context.SaveChanges();
 
         }
 
-        void IUserService.PutUser(int id, UpdateUser user)
+        void IUserService.PutUser(Guid id, UpdateUser user)
         {
-            var updateobj = _context.Users.Find(id);
+            var updateobj = _context.UserInfos.Find(id);
             updateobj.Username = user.Username;
             updateobj.Email = user.Email;
             updateobj.PhoneNo = user.PhoneNo;
 
             _context.SaveChanges();
         }
-        public bool IsExist(int id)
+        public bool IsExist(Guid id)
         {
-            return _context.Users.Any(e => e.Userid == id);
+            return _context.UserInfos.Any(e => e.UserId == id);
         }
 
         private static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
