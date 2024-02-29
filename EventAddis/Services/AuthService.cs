@@ -23,7 +23,7 @@ namespace WebService.API.Services
 
         public (PasswordVerificationResult passwordVerificationResult,UserInfo userDetails) Authenticate(AuthUser auth)
         {
-            var user = _context.UserInfos.FirstOrDefault(x => x.Email.TrimEnd().ToLower() == auth.Email.Trim().ToLower() || x.Username.TrimEnd().ToLower() == auth.UserName.Trim().ToLower());
+            var user = _context.UserInfos.FirstOrDefault(x => x.Email.TrimEnd().ToLower() == auth.Email.Trim().ToLower() || x.Username.TrimEnd().ToLower() == auth.Email.Trim().ToLower());
 
             // check if username exists
             if (user != null)

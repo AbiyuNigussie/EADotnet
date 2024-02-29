@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using WebService.API.Data;
 using WebService.API.Entity;
 using WebService.API.Models;
@@ -38,6 +39,7 @@ namespace WebService.API.Controllers
 
         // GET: api/Users/5
         [HttpGet("{id}")]
+        // [AllowAnonymous]
         [Authorize(Roles = "SuperAdmin, Admin, Agent")]
         public IActionResult GetUserbyId(Guid id)
         {
@@ -45,7 +47,7 @@ namespace WebService.API.Controllers
 
             if (userById == null)
             {
-                return NotFound("User for the $`{id}` not found!");
+                return NotFound("User Doesn't Exist!");
             }
 
             return Ok(userById);
@@ -56,6 +58,7 @@ namespace WebService.API.Controllers
         [Authorize(Roles = "SuperAdmin, Admin")]
         public IActionResult PutUser(Guid id, UpdateUser user)
         {
+
             var dbuserid = _context.UserInfos.Find(id);
             if (id != dbuserid.UserId)
             {

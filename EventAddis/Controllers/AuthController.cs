@@ -39,7 +39,7 @@ namespace WebService.API.Controllers
             if (result.userDetails != null)
             {
 
-                if(result.passwordVerificationResult == PasswordVerificationResult.Success)
+                if (result.passwordVerificationResult == PasswordVerificationResult.Success)
                 {
                     var token = _auth.Generate(result.userDetails);
 
@@ -55,15 +55,15 @@ namespace WebService.API.Controllers
                     });
                 }
 
-                ModelState.AddModelError("", "Incorrect Password/Username");
+                ModelState.AddModelError("errorMessage", "Incorrect Email/Password");
                 return StatusCode(402, ModelState);
 
 
             }
 
-                ModelState.AddModelError("", "User not Found!");
-                return StatusCode(404, ModelState);
-            
+            ModelState.AddModelError("errorMessage", "User not Found!");
+            return StatusCode(404, ModelState);
+
         }
 
         [AllowAnonymous]
@@ -71,6 +71,19 @@ namespace WebService.API.Controllers
         [Route("Register")]
         public IActionResult createUser([FromBody] RegisterUser user)
         {
+            if (user.Role != "User")
+            {
+                ModelState.AddModelError("", "Invalid role. Only 'user' role is allowed.");
+                return StatusCode(422, ModelState);
+            }
+
+            var existingUser = _userservice.GetUsers().Where(u => u.Email.TrimEnd().ToLower() == user.Email.Trim().ToLower() || u.Username.TrimEnd().ToLower() == user.Username.Trim().ToLower()).FirstOrDefault();
+
+            if(existingUser != null)
+            {
+                ModelState.AddModelError("", "Email/Useraname Already Exists!");
+                return StatusCode(422, ModelState);
+            }
 
             var createUser = _userservice.PostUser(user, user.Password);
             return Ok(createUser);

@@ -4,6 +4,7 @@
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Configurations>Debug;Release;debug.dev</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +20,12 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\uploads\EventImages\31e150f9-1595-4f18-a13e-783492da95e1.jpg" />
+    <None Include="wwwroot\uploads\EventImages\b4491443-3f64-45db-a138-bda752d75f30.jpg" />
+    <None Include="wwwroot\uploads\profileImages\default.png" />
   </ItemGroup>
 
 </Project>

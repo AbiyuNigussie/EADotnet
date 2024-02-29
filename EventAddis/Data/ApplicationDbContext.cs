@@ -13,6 +13,11 @@ namespace WebService.API.Data
         }
         public DbSet<UserCredential> UserCredentials { get; set; }
         public DbSet<UserInfo> UserInfos{ get; set; }
+        public DbSet<Event> Events { get; set; }
+        public DbSet<Location> Locations { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<City> Cities { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -33,8 +38,22 @@ namespace WebService.API.Data
                 entity.HasOne(e => e.User).WithOne(e => e.userCrendential)
                     .HasForeignKey<UserCredential>(e => e.UserId);
             });
-                
+
+            modelBuilder.Entity<Event>()
+           .HasOne(e => e.Location)
+           .WithMany(l => l.Events)
+           .HasForeignKey(e => e.LocationId);
+
+            modelBuilder.Entity<Event>()
+            .HasOne(e => e.Category)
+            .WithMany(c => c.Events)
+            .HasForeignKey(e => e.CategoryId);
+            modelBuilder.Entity<Event>()
+           .HasOne(e => e.UserInfo)
+           .WithMany(c => c.Events)
+           .HasForeignKey(e => e.UserId);
         }
+
         //protected override void OnModelCreating(ModelBuilder builder)
         //{
         //    base.OnModelCreating(builder);
